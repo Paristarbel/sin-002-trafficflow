@@ -21,6 +21,7 @@ public class IngestionServiceApp {
 
         app.get("/intersections",cxt -> cxt.json(intersections));
 
+
         InputStream input = IngestionServiceApp.class
                 .getClassLoader()
                 .getResourceAsStream("intersections-legacy.csv");
@@ -40,14 +41,6 @@ public class IngestionServiceApp {
             for (int i = 0; i < data.length; i++) {
                 data[i] = data[i].trim().toLowerCase();
             }
-            intersections.add(data);
-
-
-            for (int i = 0; i < data.length; i++) {
-                System.out.println(data[i]);
-            }
-
-
 
             String activeFlag = data[3];
 
@@ -72,7 +65,12 @@ public class IngestionServiceApp {
                 active = false;
             }
 
-            System.out.println("Active: " + active);
+            // Replace the old value with the cleaned boolean
+            data[3] = String.valueOf(active);
+
+            // Now store the cleaned record
+            intersections.add(data);
+
             System.out.println("----------------");
         }
 
