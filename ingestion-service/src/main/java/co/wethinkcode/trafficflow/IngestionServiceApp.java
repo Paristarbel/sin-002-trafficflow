@@ -2,6 +2,7 @@ package co.wethinkcode.trafficflow;
 
 import io.javalin.Javalin;
 import java.util.*;
+import java.io.*;
 
 public class IngestionServiceApp {
 
