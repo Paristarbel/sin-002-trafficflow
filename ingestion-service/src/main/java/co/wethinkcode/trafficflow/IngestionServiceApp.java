@@ -1,10 +1,9 @@
 package co.wethinkcode.trafficflow;
 
 import io.javalin.Javalin;
+import io.javalin.Javalin;
 
 import java.io.*;
-import java.time.*;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 public class IngestionServiceApp {
@@ -12,14 +11,14 @@ public class IngestionServiceApp {
     public static void main(String[] args) throws IOException {
 
         Javalin app = Javalin.create().start(7020);
-        List<String[]> intersections = new ArrayList<>();
+        List<Intersection> intersections = new ArrayList<>();
 
         app.get("/health", ctx -> ctx.result("OK"));
         // TODO: read and clean src/main/resources/intersections-legacy.csv (intersections, districts, signal types data —
         // trim whitespace, fix casing, normalize dates/booleans) and expose the
         // cleaned records here for the other services to consume.
 
-        app.get("/intersections",cxt -> cxt.json(intersections));
+        app.get("/intersections",ctx -> ctx.json(intersections));
 
 
         InputStream input = IngestionServiceApp.class
@@ -37,7 +36,7 @@ public class IngestionServiceApp {
 
             String[] data = line.split(",");
 
-            // Clean whitespace and casing
+
             for (int i = 0; i < data.length; i++) {
                 data[i] = data[i].trim().toLowerCase();
             }
@@ -65,11 +64,15 @@ public class IngestionServiceApp {
                 active = false;
             }
 
-            // Replace the old value with the cleaned boolean
-            data[3] = String.valueOf(active);
 
-            // Now store the cleaned record
-            intersections.add(data);
+            Intersection intersection = new Intersection(  data[0],
+                    data[1],
+                    data[2],
+                    active);
+
+
+
+            intersections.add(intersection);
 
             System.out.println("----------------");
         }
