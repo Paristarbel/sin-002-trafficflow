@@ -8,12 +8,12 @@ public class Intersection {
     private String intersectionId;
     private String district;
     private String signalType;
-    private boolean active;
+    private Boolean active;
 
     public Intersection(String intersectionId,
                         String district,
                         String signalType,
-                        boolean active) {
+                        Boolean active) {
 
         this.intersectionId = intersectionId;
         this.district = district;
@@ -34,7 +34,7 @@ public class Intersection {
         return signalType;
     }
 
-    public boolean isActive() {
+    public Boolean getActive() {
         return active;
     }
 }
