@@ -1,8 +1,6 @@
 package co.wethinkcode.trafficflow;
 
 import io.javalin.Javalin;
-import io.javalin.Javalin;
-
 import java.io.*;
 import java.util.*;
 
@@ -43,7 +41,7 @@ public class IngestionServiceApp {
 
             String activeFlag = data[3];
 
-            boolean active;
+            Boolean active;
 
             if (activeFlag.equals("y")
                     || activeFlag.equals("yes")
@@ -61,7 +59,7 @@ public class IngestionServiceApp {
 
             } else {
 
-                active = false;
+                active = null;
             }
 
 
@@ -78,5 +76,6 @@ public class IngestionServiceApp {
         }
 
         reader.close();
+       
     }
 }
