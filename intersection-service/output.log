@@ -1,0 +1,21 @@
+[main] INFO io.javalin.Javalin - Starting Javalin ...
+[main] INFO org.eclipse.jetty.server.Server - jetty-11.0.17; built: 2023-10-09T18:39:14.424Z; git: 48e7716b9462bebea6732b885dbebb4300787a5c; jvm 21.0.11+10-1-22.04.2-Ubuntu
+[main] INFO org.eclipse.jetty.server.session.DefaultSessionIdManager - Session workerName=node0
+[main] INFO org.eclipse.jetty.server.handler.ContextHandler - Started i.j.j.@16ec5519{/,null,AVAILABLE}
+[main] INFO org.eclipse.jetty.server.AbstractConnector - Started ServerConnector@2641e737{HTTP/1.1, (http/1.1)}{0.0.0.0:7021}
+[main] INFO org.eclipse.jetty.server.Server - Started Server@3bd94634{STARTING}[11.0.17,sto=0] @241ms
+[main] INFO io.javalin.Javalin - 
+       __                  ___          ______
+      / /___ __   ______ _/ (_)___     / ____/
+ __  / / __ `/ | / / __ `/ / / __ \   /___ \
+/ /_/ / /_/ /| |/ / /_/ / / / / / /  ____/ /
+\____/\__,_/ |___/\__,_/_/_/_/ /_/  /_____/
+
+       https://javalin.io/documentation
+
+[main] INFO io.javalin.Javalin - Your JDK supports Loom. Javalin will prefer Virtual Threads by default. Disable with `ConcurrencyUtil.useLoom = false`.
+[main] INFO io.javalin.Javalin - Listening on http://localhost:7021/
+[main] INFO io.javalin.Javalin - You are running Javalin 5.6.3 (released October 15, 2023. Your Javalin version is 1072 days old. Consider checking for a newer version.).
+[main] INFO io.javalin.Javalin - Javalin started in 175ms \o/
+Raw JSON: [{"intersectionId":"int-1001","district":"downtown","signalType":"4-way","active":true},{"intersectionId":"int-1002","district":"midtown","signalType":"pedestrian","active":true},{"intersectionId":"int-1003","district":"downtown","signalType":"4-way","active":false},{"intersectionId":"int-1004","district":"uptown","signalType":null,"active":true},{"intersectionId":"int-1005","district":"downtown","signalType":"roundabout","active":true},{"intersectionId":"int-1006","district":"midtown","signalType":"4-way","active":false},{"intersectionId":"int-1007","district":"eastside","signalType":null,"active":true},{"intersectionId":"int-1008","district":"uptown","signalType":"pedestrian","active":false},{"intersectionId":"int-1009","district":"westside","signalType":"4-way","active":false},{"intersectionId":"int-1010","district":"downtown","signalType":"stop-sign","active":true},{"intersectionId":"int-1011","district":"midtown","signalType":"4-way","active":true},{"intersectionId":"int-1012","district":"eastside","signalType":"roundabout","active":false},{"intersectionId":"int-1013","district":"westside","signalType":null,"active":null},{"intersectionId":"int-1014","district":"uptown","signalType":"pedestrian","active":true},{"intersectionId":"int-1015","district":null,"signalType":"4-way","active":true},{"intersectionId":"int-1016","district":"downtown","signalType":"4-way","active":true},{"intersectionId":"int-1017","district":"eastside","signalType":"stop-sign","active":false}]
+Status code: 200
