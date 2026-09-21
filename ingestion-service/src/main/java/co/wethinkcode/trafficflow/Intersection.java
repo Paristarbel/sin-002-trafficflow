@@ -1,7 +1,7 @@
 package co.wethinkcode.trafficflow;
 
-import java.util.ArrayList;
-import java.util.List;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class Intersection {
 
@@ -10,16 +10,17 @@ public class Intersection {
     private String signalType;
     private Boolean active;
 
-    public Intersection(String intersectionId,
-                        String district,
-                        String signalType,
-                        Boolean active) {
+    @JsonCreator
+    public Intersection(
+            @JsonProperty("intersectionId") String intersectionId,
+            @JsonProperty("district") String district,
+            @JsonProperty("signalType") String signalType,
+            @JsonProperty("active") Boolean active) {
 
         this.intersectionId = intersectionId;
         this.district = district;
         this.signalType = signalType;
         this.active = active;
-
     }
 
     public String getIntersectionId() {

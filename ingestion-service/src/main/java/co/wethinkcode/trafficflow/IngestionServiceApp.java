@@ -1,6 +1,7 @@
 package co.wethinkcode.trafficflow;
 
 import io.javalin.Javalin;
+
 import java.io.*;
 import java.util.*;
 
@@ -9,14 +10,10 @@ public class IngestionServiceApp {
     public static void main(String[] args) throws IOException {
 
         Javalin app = Javalin.create().start(7020);
+
         Map<String, Intersection> intersections = new LinkedHashMap<>();
 
         app.get("/health", ctx -> ctx.result("OK"));
-        // TODO: read and clean src/main/resources/intersections-legacy.csv (intersections, districts, signal types data —
-        // trim whitespace, fix casing, normalize dates/booleans) and expose the
-        // cleaned records here for the other services to consume.
-
-        app.get("/intersections", ctx -> ctx.json(intersections.values()));
 
         InputStream input = IngestionServiceApp.class
                 .getClassLoader()
@@ -25,64 +22,108 @@ public class IngestionServiceApp {
         BufferedReader reader =
                 new BufferedReader(new InputStreamReader(input));
 
-        String line;
+        reader.readLine(); // skip header
 
-        reader.readLine();
+        String line;
 
         while ((line = reader.readLine()) != null) {
 
             String[] data = line.split(",", -1);
 
             for (int i = 0; i < data.length; i++) {
-                data[i] = data[i].trim().toLowerCase().replaceAll("\\s+", " ");
+                data[i] = data[i]
+                        .trim()
+                        .replaceAll("\\s+", " ");
             }
 
-            String activeFlag = data[3];
+            String id = data[0].toUpperCase();
 
-            Boolean active;
-
-            if (activeFlag.equals("y")
-                    || activeFlag.equals("yes")
-                    || activeFlag.equals("true")
-                    || activeFlag.equals("1")) {
-
-                active = true;
-
-            } else if (activeFlag.equals("no")
-                    || activeFlag.equals("n")
-                    || activeFlag.equals("false")
-                    || activeFlag.equals("0")) {
-
-                active = false;
-
-            } else {
-
-                active = null;
+            String district = cleanValue(data[1]);
+            if (district != null) {
+                district = titleCase(district);
             }
 
-            Intersection intersection = new Intersection(
-                    data[0],
-                    cleanValue(data[1]),
-                    cleanValue(data[2]),
-                    active);
+            String signalType = cleanValue(data[2]);
+            if (signalType != null) {
+                signalType = signalType.toLowerCase();
+            }
 
-            intersections.putIfAbsent(data[0], intersection);
+            Boolean active = parseBoolean(data[3]);
+
+            Intersection intersection =
+                    new Intersection(
+                            id,
+                            district,
+                            signalType,
+                            active
+                    );
+
+            intersections.putIfAbsent(id, intersection);
         }
 
         reader.close();
+
+        app.get("/intersections",
+                ctx -> ctx.json(intersections.values()));
     }
 
-    public static String cleanValue(String value) {
+    private static Boolean parseBoolean(String value) {
 
-        if (value.equals("")
-                || value.equals("tbd")
-                || value.equals("-")
-                || value.equals("n/a")
-                || value.equals("unknown")
-                || value.equals("nan")) {
-            return null;
-        } else {
-            return value;
+        if (value == null) return null;
+
+        value = value.trim().toLowerCase();
+
+        switch (value) {
+            case "y":
+            case "yes":
+            case "true":
+            case "1":
+                return true;
+
+            case "n":
+            case "no":
+            case "false":
+            case "0":
+                return false;
+
+            default:
+                return null;
         }
+    }
+
+    private static String cleanValue(String value) {
+
+        if (value == null) return null;
+
+        value = value.trim();
+
+        if (value.isEmpty()
+                || value.equalsIgnoreCase("n/a")
+                || value.equalsIgnoreCase("tbd")
+                || value.equalsIgnoreCase("unknown")
+                || value.equalsIgnoreCase("nan")
+                || value.equals("-")) {
+            return null;
+        }
+
+        return value;
+    }
+
+    private static String titleCase(String text) {
+
+        String[] words = text.toLowerCase().split(" ");
+        StringBuilder result = new StringBuilder();
+
+        for (String word : words) {
+
+            if (word.isEmpty()) continue;
+
+            result.append(
+                            Character.toUpperCase(word.charAt(0)))
+                    .append(word.substring(1))
+                    .append(" ");
+        }
+
+        return result.toString().trim();
     }
 }
