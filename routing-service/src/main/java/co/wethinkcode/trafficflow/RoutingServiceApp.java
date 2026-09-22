@@ -1,8 +1,17 @@
 package co.wethinkcode.trafficflow;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.javalin.Javalin;
 import co.wethinkcode.trafficflow.mq.MqConfig;
+
+import org.apache.activemq.ActiveMQConnectionFactory;
+
+import javax.jms.Connection;
+import javax.jms.ConnectionFactory;
+import javax.jms.MessageConsumer;
+import javax.jms.Session;
+import javax.jms.TextMessage;
+import javax.jms.Topic;
+
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -11,16 +20,70 @@ import java.util.Map;
 
 public class RoutingServiceApp {
 
-    public static void main(String[] args) {
+    private static volatile int latestCongestionLevel = 4;
+
+    public static void main(String[] args) throws Exception {
+
         Javalin app = Javalin.create().start(7023);
 
         app.get("/health", ctx -> ctx.result("OK"));
 
-        // TODO (Provides estimated travel times based on congestion and intersection.)
-        // Add domain endpoints for routing-service here.
         HttpClient client = HttpClient.newHttpClient();
 
         ObjectMapper mapper = new ObjectMapper();
+
+        ConnectionFactory factory =
+                new ActiveMQConnectionFactory(
+                        MqConfig.BROKER_URL);
+
+        Connection connection =
+                factory.createConnection();
+
+        connection.start();
+
+        Session session =
+                connection.createSession(
+                        false,
+                        Session.AUTO_ACKNOWLEDGE);
+
+        Topic topic =
+                session.createTopic(
+                        MqConfig.TOPIC);
+
+        MessageConsumer consumer =
+                session.createConsumer(topic);
+
+        consumer.setMessageListener(message -> {
+
+            try {
+
+                String json =
+                        ((TextMessage) message)
+                                .getText();
+
+                Map<?, ?> update =
+                        mapper.readValue(
+                                json,
+                                Map.class);
+
+                Object level =
+                        update.get("level");
+
+                if (level instanceof Number) {
+
+                    latestCongestionLevel =
+                            ((Number) level).intValue();
+
+                    System.out.println(
+                            "Received congestion level: "
+                                    + latestCongestionLevel);
+                }
+
+            } catch (Exception e) {
+
+                e.printStackTrace();
+            }
+        });
 
         app.get("/route/{id}", ctx -> {
 
@@ -42,77 +105,40 @@ public class RoutingServiceApp {
                                 HttpResponse.BodyHandlers.ofString());
 
                 if (intersectionResponse.statusCode() == 404) {
+
                     ctx.status(404)
                             .result("Unknown intersection");
+
                     return;
                 }
 
                 if (intersectionResponse.statusCode() != 200) {
+
                     ctx.status(503)
                             .result("Intersection service unavailable");
+
                     return;
                 }
-
-                HttpRequest congestionRequest =
-                        HttpRequest.newBuilder()
-                                .uri(
-                                        URI.create(
-                                                "http://localhost:7022/congestion"))
-                                .GET()
-                                .build();
-
-                HttpResponse<String> congestionResponse =
-                        client.send(
-                                congestionRequest,
-                                HttpResponse.BodyHandlers.ofString());
-
-                if (congestionResponse.statusCode() != 200) {
-                    ctx.status(503)
-                            .result("Congestion service unavailable");
-                    return;
-                }
-
-                Map<?, ?> congestion =
-                        mapper.readValue(
-                                congestionResponse.body(),
-                                Map.class);
-
-                Object levelValue = congestion.get("level");
-
-                if (!(levelValue instanceof Number)) {
-                    ctx.status(503)
-                            .result("Invalid congestion response");
-                    return;
-                }
-
-                int level = ((Number) levelValue).intValue();
-
-                if (level < 0 || level > 8) {
-                    ctx.status(503)
-                            .result("Invalid congestion level");
-                    return;
-                }
-
-                int baseTravelTime = 10;
 
                 int estimatedTravelTime =
-                        baseTravelTime + (level * 5);
+                        10 + (latestCongestionLevel * 5);
 
                 ctx.json(
                         Map.of(
-                                "intersectionId", id,
-                                "congestionLevel", level,
+                                "intersectionId",
+                                id,
+                                "congestionLevel",
+                                latestCongestionLevel,
                                 "estimatedTravelTimeMinutes",
                                 estimatedTravelTime
                         )
                 );
 
             } catch (Exception e) {
+
                 ctx.status(503)
                         .result("Dependency service unavailable");
             }
         });
     }
 }
-
-// MQ TODO: subscribes to ActiveMQ topic MqConfig.TOPIC at MqConfig.BROKER_URL (see co.wethinkcode.trafficflow.mq.MqConfig)
