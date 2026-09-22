@@ -91,7 +91,7 @@ public class IngestionServiceApp {
         }
     }
 
-    private static String cleanValue(String value) {
+    static String cleanValue(String value) {
 
         if (value == null) return null;
 

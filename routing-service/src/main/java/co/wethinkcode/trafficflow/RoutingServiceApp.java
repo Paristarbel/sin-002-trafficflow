@@ -2,7 +2,7 @@ package co.wethinkcode.trafficflow;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.javalin.Javalin;
-
+import co.wethinkcode.trafficflow.mq.MqConfig;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
