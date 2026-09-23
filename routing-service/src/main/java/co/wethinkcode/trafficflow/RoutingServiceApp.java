@@ -1,5 +1,4 @@
 package co.wethinkcode.trafficflow;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.javalin.Javalin;
 import co.wethinkcode.trafficflow.mq.MqConfig;
