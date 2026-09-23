@@ -2,142 +2,102 @@ package co.wethinkcode.trafficflow;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.javalin.Javalin;
 import co.wethinkcode.trafficflow.mq.MqConfig;
-
 import org.apache.activemq.ActiveMQConnectionFactory;
-
-import javax.jms.Connection;
-import javax.jms.ConnectionFactory;
-import javax.jms.MessageConsumer;
-import javax.jms.Session;
-import javax.jms.TextMessage;
-import javax.jms.Topic;
+import jakarta.jms.*;
 
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class RoutingServiceApp {
 
-    private static volatile int latestCongestionLevel = 4;
+    private static final AtomicInteger cachedCongestionLevel = new AtomicInteger(4);
 
-    public static void main(String[] args) throws Exception {
-
+    public static void main(String[] args) {
         Javalin app = Javalin.create().start(7023);
 
         app.get("/health", ctx -> ctx.result("OK"));
 
         HttpClient client = HttpClient.newHttpClient();
-
         ObjectMapper mapper = new ObjectMapper();
 
-        ConnectionFactory factory =
-                new ActiveMQConnectionFactory(
-                        MqConfig.BROKER_URL);
+        // Initialize ActiveMQ Consumer Subscription
+        try {
+            ConnectionFactory connectionFactory = new ActiveMQConnectionFactory(MqConfig.BROKER_URL);
+            Connection connection = connectionFactory.createConnection();
+            connection.start();
 
-        Connection connection =
-                factory.createConnection();
+            Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+            Topic topic = session.createTopic(MqConfig.TOPIC);
+            MessageConsumer consumer = session.createConsumer(topic);
 
-        connection.start();
-
-        Session session =
-                connection.createSession(
-                        false,
-                        Session.AUTO_ACKNOWLEDGE);
-
-        Topic topic =
-                session.createTopic(
-                        MqConfig.TOPIC);
-
-        MessageConsumer consumer =
-                session.createConsumer(topic);
-
-        consumer.setMessageListener(message -> {
-
-            try {
-
-                String json =
-                        ((TextMessage) message)
-                                .getText();
-
-                Map<?, ?> update =
-                        mapper.readValue(
-                                json,
-                                Map.class);
-
-                Object level =
-                        update.get("level");
-
-                if (level instanceof Number) {
-
-                    latestCongestionLevel =
-                            ((Number) level).intValue();
-
-                    System.out.println(
-                            "Received congestion level: "
-                                    + latestCongestionLevel);
+            consumer.setMessageListener(message -> {
+                try {
+                    if (message instanceof TextMessage) {
+                        String text = ((TextMessage) message).getText();
+                        Map<?, ?> payload = mapper.readValue(text, Map.class);
+                        Object levelValue = payload.get("level");
+                        if (levelValue instanceof Number) {
+                            int newLevel = ((Number) levelValue).intValue();
+                            if (newLevel >= 0 && newLevel <= 8) {
+                                cachedCongestionLevel.set(newLevel);
+                                System.out.println("Routing service cache updated to congestion level: " + newLevel);
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    System.err.println("Error parsing JMS message: " + e.getMessage());
                 }
+            });
 
-            } catch (Exception e) {
+            System.out.println("Successfully subscribed to ActiveMQ topic: " + MqConfig.TOPIC);
 
-                e.printStackTrace();
-            }
-        });
+        } catch (Exception e) {
+            System.err.println("Failed to initialize ActiveMQ connection: " + e.getMessage());
+        }
 
         app.get("/route/{id}", ctx -> {
-
             String id = ctx.pathParam("id");
 
             try {
-
                 HttpRequest intersectionRequest =
                         HttpRequest.newBuilder()
-                                .uri(
-                                        URI.create(
-                                                "http://localhost:7021/intersections/" + id))
+                                .uri(URI.create("http://localhost:7021/intersections/" + id))
                                 .GET()
                                 .build();
 
                 HttpResponse<String> intersectionResponse =
-                        client.send(
-                                intersectionRequest,
-                                HttpResponse.BodyHandlers.ofString());
+                        client.send(intersectionRequest, HttpResponse.BodyHandlers.ofString());
 
                 if (intersectionResponse.statusCode() == 404) {
-
-                    ctx.status(404)
-                            .result("Unknown intersection");
-
+                    ctx.status(404).result("Unknown intersection");
                     return;
                 }
 
                 if (intersectionResponse.statusCode() != 200) {
-
-                    ctx.status(503)
-                            .result("Intersection service unavailable");
-
+                    ctx.status(503).result("Intersection service unavailable");
                     return;
                 }
 
-                int estimatedTravelTime =
-                        10 + (latestCongestionLevel * 5);
+                // Pulled from local ActiveMQ event-driven memory cache
+                int level = cachedCongestionLevel.get();
+
+                int baseTravelTime = 10;
+                int estimatedTravelTime = baseTravelTime + (level * 5);
 
                 ctx.json(
                         Map.of(
-                                "intersectionId",
-                                id,
-                                "congestionLevel",
-                                latestCongestionLevel,
-                                "estimatedTravelTimeMinutes",
-                                estimatedTravelTime
+                                "intersectionId", id,
+                                "congestionLevel", level,
+                                "estimatedTravelTimeMinutes", estimatedTravelTime
                         )
                 );
 
             } catch (Exception e) {
-
-                ctx.status(503)
-                        .result("Dependency service unavailable");
+                ctx.status(503).result("Dependency service unavailable");
             }
         });
     }

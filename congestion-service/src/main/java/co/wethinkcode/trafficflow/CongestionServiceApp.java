@@ -7,12 +7,30 @@ import org.apache.activemq.ActiveMQConnectionFactory;
 import javax.jms.*;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import javax.jms.Connection;
+import javax.jms.ConnectionFactory;
+import javax.jms.MessageProducer;
+import javax.jms.Session;
+import javax.jms.TextMessage;
+import javax.jms.Topic;
+
+
+
+import org.apache.activemq.ActiveMQConnectionFactory;
+
+import co.wethinkcode.trafficflow.mq.MqConfig;
 
 public class CongestionServiceApp {
 
     public static void main(String[] args) throws Exception {
-
         Javalin app = Javalin.create().start(7022);
+
+        ConnectionFactory factory = new ActiveMQConnectionFactory(MqConfig.BROKER_URL);
+        Connection connection = factory.createConnection();
+        connection.start();
+        Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+        Topic topic = session.createTopic(MqConfig.TOPIC);
+        MessageProducer producer = session.createProducer(topic);
 
         AtomicInteger congestionLevel = new AtomicInteger(4);
 
@@ -62,53 +80,12 @@ public class CongestionServiceApp {
 
                 return;
             }
-
-            if (level < 0 || level > 8) {
-
-                ctx.status(400)
-                        .result("Level must be between 0 and 8");
-
-                return;
-            }
-
-            int oldLevel =
-                    congestionLevel.getAndSet(level);
-
-            if (oldLevel != level) {
-
-                try {
-
-                    String json =
-                            "{\"level\":" + level + "}";
-
-                    TextMessage message =
-                            session.createTextMessage(json);
-
-                    producer.send(message);
-
-                    System.out.println(
-                            "Published congestion level: "
-                                    + level);
-
-                } catch (JMSException e) {
-
-                    e.printStackTrace();
-
-                    ctx.status(500)
-                            .result("Failed to publish message");
-
-                    return;
-                }
-            }
-
-            ctx.json(
-                    Map.of(
-                            "level",
-                            congestionLevel.get(),
-                            "published",
-                            oldLevel != level
-                    )
-            );
+            congestionLevel.set(level);
+            String json = "{\"level\":" + level + "}";
+            TextMessage message = session.createTextMessage(json);
+            producer.send(message);
+            System.out.println("Published congestion level: " + level);
+            ctx.json(Map.of("level", level, "published", true));
         });
     }
 }
