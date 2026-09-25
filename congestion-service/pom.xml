@@ -10,8 +10,6 @@
   <packaging>jar</packaging>
 
   <properties>
-    <maven.compiler.source>17</maven.compiler.source>
-    <maven.compiler.target>17</maven.compiler.target>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
 
@@ -21,39 +19,39 @@
       <artifactId>jackson-databind</artifactId>
       <version>2.15.0</version>
     </dependency>
-     <dependency>
+    <dependency>
       <groupId>io.javalin</groupId>
       <artifactId>javalin</artifactId>
       <version>5.6.3</version>
-     </dependency>
-
-    <dependency>
-      <groupId>com.fasterxml.jackson.core</groupId>
-      <artifactId>jackson-databind</artifactId>
-      <version>2.15.0</version>
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-simple</artifactId>
       <version>2.0.9</version>
     </dependency>
-	<dependency>
-    <groupId>javax.jms</groupId>
-    <artifactId>javax.jms-api</artifactId>
-    <version>2.0.1</version>
-</dependency>
-
+    <dependency>
+      <groupId>org.apache.activemq</groupId>
+      <artifactId>activemq-client</artifactId>
+      <version>5.18.3</version>
+    </dependency>
     <dependency>
       <groupId>jakarta.jms</groupId>
       <artifactId>jakarta.jms-api</artifactId>
       <version>2.0.3</version>
     </dependency>
-
   </dependencies>
 
   <build>
     <finalName>congestion-service</finalName>
     <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.13.0</version>
+        <configuration>
+          <release>17</release>
+        </configuration>
+      </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-shade-plugin</artifactId>
